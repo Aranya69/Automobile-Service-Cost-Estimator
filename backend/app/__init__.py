@@ -4,7 +4,7 @@ from flask import Flask
 
 from .config import load_config
 from .errors import register_error_handlers
-from .extensions import db, jwt, migrate
+from .extensions import db, jwt, limiter, migrate
 
 
 def create_app(config_name=None):
@@ -15,10 +15,14 @@ def create_app(config_name=None):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    limiter.init_app(app)
 
     register_error_handlers(app)
 
     from . import models  # noqa: F401  (registers tables with SQLAlchemy)
+    from .routes.auth import bp as auth_bp
+
+    app.register_blueprint(auth_bp)
 
     @app.get("/api/health")
     def health():

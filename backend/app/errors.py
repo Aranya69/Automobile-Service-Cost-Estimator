@@ -28,6 +28,10 @@ def register_error_handlers(app):
     def handle_api_error(err):
         return error_response(err.message, err.status, err.fields)
 
+    @app.errorhandler(429)
+    def handle_rate_limit(err):
+        return error_response("Too many attempts. Please wait a few minutes and try again.", 429)
+
     @app.errorhandler(HTTPException)
     def handle_http_error(err):
         return error_response(err.description or err.name, err.code)
