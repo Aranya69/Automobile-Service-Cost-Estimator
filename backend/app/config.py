@@ -41,6 +41,9 @@ class BaseConfig:
     JWT_ACCESS_COOKIE_PATH = "/"
     JWT_COOKIE_SECURE = False
 
+    RATELIMIT_STORAGE_URI = "memory://"
+    RATELIMIT_HEADERS_ENABLED = True
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
@@ -54,6 +57,7 @@ class ProductionConfig(BaseConfig):
 class TestingConfig(BaseConfig):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
+    RATELIMIT_ENABLED = False
 
 
 CONFIGS = {
@@ -82,3 +86,4 @@ def load_config(app, name):
         "DATABASE_URL", "sqlite:///" + os.path.join(app.instance_path, "asce.db")
     )
     app.config["JWT_COOKIE_SECURE"] = env_bool("COOKIE_SECURE", config.JWT_COOKIE_SECURE)
+    app.config["RATELIMIT_STORAGE_URI"] = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
