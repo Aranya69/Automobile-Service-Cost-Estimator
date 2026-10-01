@@ -7,10 +7,12 @@ from .errors import register_error_handlers
 from .extensions import db, jwt, limiter, migrate
 
 
-def create_app(config_name=None):
+def create_app(config_name=None, overrides=None):
     app = Flask(__name__, instance_relative_config=True)
     os.makedirs(app.instance_path, exist_ok=True)
     load_config(app, config_name or os.environ.get("APP_ENV", "development"))
+    if overrides:
+        app.config.update(overrides)
 
     db.init_app(app)
     migrate.init_app(app, db)
