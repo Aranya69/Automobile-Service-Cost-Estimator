@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ApiError } from '~/composables/useApi'
 
+definePageMeta({ middleware: 'guest' })
 useHead({ title: 'Log in · ASCE' })
 
 const route = useRoute()

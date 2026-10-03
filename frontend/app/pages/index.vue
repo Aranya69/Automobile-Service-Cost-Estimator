@@ -1,3 +1,7 @@
+<script setup lang="ts">
+const { user } = useAuth()
+</script>
+
 <template>
   <div class="page">
     <section class="intro">
@@ -7,7 +11,10 @@
         Describe the problem in Bangla, Banglish or English. ASCE picks the likely repair jobs and
         prices them from parts market and garage data, in taka.
       </p>
-      <div class="actions">
+      <div v-if="user" class="actions">
+        <NuxtLink to="/account" class="btn btn-primary">Go to my account</NuxtLink>
+      </div>
+      <div v-else class="actions">
         <NuxtLink to="/register" class="btn btn-primary">Create an account</NuxtLink>
         <NuxtLink to="/login" class="btn">I already have one</NuxtLink>
       </div>

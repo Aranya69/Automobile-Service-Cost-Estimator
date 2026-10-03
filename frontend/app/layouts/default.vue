@@ -1,3 +1,17 @@
+<script setup lang="ts">
+const { user, logout } = useAuth()
+const leaving = ref(false)
+
+const firstName = computed(() => user.value?.name.split(' ')[0] ?? '')
+
+async function onLogout() {
+  leaving.value = true
+  await logout()
+  leaving.value = false
+  await navigateTo('/login')
+}
+</script>
+
 <template>
   <div class="shell">
     <header class="topbar">
@@ -7,7 +21,13 @@
           <span class="brand-sub">Service Cost Estimator</span>
         </NuxtLink>
 
-        <nav class="nav">
+        <nav v-if="user" class="nav">
+          <NuxtLink to="/account" class="who" :title="user.email">{{ firstName }}</NuxtLink>
+          <button class="btn btn-quiet" type="button" :disabled="leaving" @click="onLogout">
+            Log out
+          </button>
+        </nav>
+        <nav v-else class="nav">
           <NuxtLink to="/login">Log in</NuxtLink>
           <NuxtLink to="/register" class="btn btn-primary">Register</NuxtLink>
         </nav>
@@ -86,6 +106,11 @@
 .nav a:not(.btn):hover,
 .nav a.router-link-active:not(.btn) {
   border-bottom-color: var(--red-400);
+}
+
+.nav .who {
+  font-weight: 600;
+  color: var(--red-700);
 }
 
 main { flex: 1; }

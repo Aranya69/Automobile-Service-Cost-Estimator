@@ -42,6 +42,15 @@ export function useAuth() {
     checked.value = true
   }
 
+  async function logout() {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // The cookie is cleared server-side; forget the user locally either way.
+    }
+    user.value = null
+  }
+
   return {
     user,
     checked,
@@ -49,6 +58,7 @@ export function useAuth() {
     fetchUser,
     login,
     register,
+    logout,
   }
 }
 
