@@ -2,6 +2,7 @@
 import { ApiError } from '~/composables/useApi'
 import type { RegisterForm } from '~/composables/useAuth'
 
+definePageMeta({ middleware: 'guest' })
 useHead({ title: 'Create account · ASCE' })
 
 const { register } = useAuth()
