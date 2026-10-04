@@ -17,9 +17,41 @@ const fieldErrors = ref<Record<string, string>>({})
 const formError = ref('')
 const busy = ref(false)
 
+type Field = keyof RegisterForm
+
+function checkField(field: Field) {
+  const rules: Record<Field, () => string> = {
+    name: () => nameError(form.name),
+    email: () => emailError(form.email),
+    password: () => passwordError(form.password, form.email),
+    confirm_password: () => confirmError(form.password, form.confirm_password),
+  }
+  const message = rules[field]()
+  const next = { ...fieldErrors.value }
+  if (message) next[field] = message
+  else delete next[field]
+  fieldErrors.value = next
+  return !message
+}
+
+// Check a field when the user leaves it, and re-check while they fix it.
+function onBlur(field: Field) {
+  if (form[field]) checkField(field)
+}
+
+function onInput(field: Field) {
+  if (fieldErrors.value[field]) checkField(field)
+}
+
 async function submit() {
   formError.value = ''
-  fieldErrors.value = {}
+  const fields: Field[] = ['name', 'email', 'password', 'confirm_password']
+  const results = fields.map(checkField)
+  if (results.includes(false)) {
+    formError.value = 'Please fix the highlighted fields.'
+    return
+  }
+
   busy.value = true
   try {
     await register({ ...form })
@@ -43,7 +75,7 @@ async function submit() {
       <h1>Create an account</h1>
       <p class="lead">It takes a minute. We only use your email to log you in.</p>
 
-      <form class="panel form" @submit.prevent="submit">
+      <form class="panel form" novalidate @submit.prevent="submit">
         <p v-if="formError" class="alert alert-error" role="alert">{{ formError }}</p>
 
         <div class="field">
@@ -51,6 +83,8 @@ async function submit() {
           <input
             id="name"
             v-model="form.name"
+            @blur="onBlur('name')"
+            @input="onInput('name')"
             class="input"
             :class="{ 'has-error': fieldErrors.name }"
             autocomplete="name"
@@ -65,6 +99,8 @@ async function submit() {
           <input
             id="email"
             v-model="form.email"
+            @blur="onBlur('email')"
+            @input="onInput('email')"
             class="input"
             :class="{ 'has-error': fieldErrors.email }"
             type="email"
@@ -79,6 +115,8 @@ async function submit() {
           <input
             id="password"
             v-model="form.password"
+            @blur="onBlur('password')"
+            @input="onInput('password')"
             class="input"
             :class="{ 'has-error': fieldErrors.password }"
             type="password"
@@ -87,6 +125,7 @@ async function submit() {
             maxlength="128"
             required
           />
+          <PasswordChecklist :password="form.password" />
           <span v-if="fieldErrors.password" class="field-error">{{ fieldErrors.password }}</span>
         </div>
 
@@ -95,6 +134,8 @@ async function submit() {
           <input
             id="confirm_password"
             v-model="form.confirm_password"
+            @blur="onBlur('confirm_password')"
+            @input="onInput('confirm_password')"
             class="input"
             :class="{ 'has-error': fieldErrors.confirm_password }"
             type="password"

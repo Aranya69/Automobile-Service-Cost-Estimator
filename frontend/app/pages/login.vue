@@ -15,6 +15,10 @@ const busy = ref(false)
 async function submit() {
   formError.value = ''
   fieldErrors.value = {}
+  if (!form.email.trim()) fieldErrors.value.email = 'Email is required.'
+  if (!form.password) fieldErrors.value.password = 'Password is required.'
+  if (Object.keys(fieldErrors.value).length) return
+
   busy.value = true
   try {
     await login(form.email, form.password)
@@ -39,7 +43,7 @@ async function submit() {
       <h1>Log in</h1>
       <p class="lead">Welcome back. Your cars and past estimates are waiting.</p>
 
-      <form class="panel form" @submit.prevent="submit">
+      <form class="panel form" novalidate @submit.prevent="submit">
         <p v-if="formError" class="alert alert-error" role="alert">{{ formError }}</p>
 
         <div class="field">
