@@ -14,6 +14,10 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default="user")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
 
+    vehicles = db.relationship(
+        "Vehicle", back_populates="owner", cascade="all, delete-orphan", passive_deletes=True
+    )
+
     def set_password(self, password):
         # Werkzeug uses scrypt with a random salt by default.
         self.password_hash = generate_password_hash(password)
