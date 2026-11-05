@@ -1,0 +1,170 @@
+{
+  "car_models": {
+    "Axio": ["axio", "corolla axio", "fielder"],
+    "Premio": ["premio"],
+    "Allion": ["allion"],
+    "Corolla": ["corolla", "corolla x", "corolla g", "ae110", "nze121"],
+    "Noah": ["noah", "voxy"]
+  },
+
+  "quality_tiers": {
+    "genuine": ["genuine", "original", "toyota genuine", "orginal", "japan genuine"],
+    "oem": ["oem", "japan", "denso", "aisin", "ngk", "kyb", "brand new japan"],
+    "aftermarket": ["aftermarket", "china", "copy", "taiwan", "local", "thai"]
+  },
+
+  "labour_rates": [
+    { "garage_tier": "local", "rate_min": 300, "rate_max": 600, "effective_from": "2026-01-01" },
+    { "garage_tier": "workshop", "rate_min": 700, "rate_max": 1200, "effective_from": "2026-01-01" },
+    { "garage_tier": "dealer", "rate_min": 1800, "rate_max": 3000, "effective_from": "2026-01-01" }
+  ],
+
+  "parts": [
+    { "name_en": "Engine oil 4L (0W-20)", "name_bn": "ইঞ্জিন অয়েল (৪ লিটার)", "category": "engine", "aliases": ["engine oil", "mobil", "motor oil", "0w20", "0w-20"] },
+    { "name_en": "Oil filter", "name_bn": "অয়েল ফিল্টার", "category": "engine", "aliases": ["oil filter", "mobil filter"] },
+    { "name_en": "Air filter", "name_bn": "এয়ার ফিল্টার", "category": "engine", "aliases": ["air filter", "air cleaner"] },
+    { "name_en": "Cabin AC filter", "name_bn": "এসি কেবিন ফিল্টার", "category": "ac", "aliases": ["cabin filter", "ac filter", "pollen filter"] },
+    { "name_en": "Spark plug (iridium)", "name_bn": "স্পার্ক প্লাগ", "category": "engine", "aliases": ["spark plug", "plug", "iridium plug"] },
+    { "name_en": "Ignition coil", "name_bn": "ইগনিশন কয়েল", "category": "engine", "aliases": ["ignition coil", "coil", "plug coil"] },
+    { "name_en": "Front brake pads (set)", "name_bn": "সামনের ব্রেক প্যাড (সেট)", "category": "brakes", "aliases": ["brake pad", "front pad", "disc pad"] },
+    { "name_en": "Rear brake shoes (set)", "name_bn": "পেছনের ব্রেক শু (সেট)", "category": "brakes", "aliases": ["brake shoe", "rear shoe", "drum shoe"] },
+    { "name_en": "Front brake disc", "name_bn": "সামনের ব্রেক ডিস্ক", "category": "brakes", "aliases": ["brake disc", "disc rotor", "rotor"] },
+    { "name_en": "Brake fluid 1L (DOT 3)", "name_bn": "ব্রেক ফ্লুইড (১ লিটার)", "category": "brakes", "aliases": ["brake fluid", "brake oil", "dot 3", "dot3"] },
+    { "name_en": "Front shock absorber", "name_bn": "সামনের শক অ্যাবজর্বার", "category": "suspension", "aliases": ["front shock", "front strut", "front shock absorber"] },
+    { "name_en": "Rear shock absorber", "name_bn": "পেছনের শক অ্যাবজর্বার", "category": "suspension", "aliases": ["rear shock", "rear shock absorber"] },
+    { "name_en": "Stabilizer link", "name_bn": "স্টেবিলাইজার লিংক", "category": "suspension", "aliases": ["stabilizer link", "stabiliser link", "link rod", "sway bar link"] },
+    { "name_en": "CV joint (outer)", "name_bn": "সিভি জয়েন্ট", "category": "drivetrain", "aliases": ["cv joint", "drive shaft joint", "axle joint"] },
+    { "name_en": "CVT fluid 4L", "name_bn": "সিভিটি ফ্লুইড (৪ লিটার)", "category": "transmission", "aliases": ["cvt fluid", "cvt oil", "gear oil", "transmission fluid"] },
+    { "name_en": "Battery 12V (55D23)", "name_bn": "ব্যাটারি ১২ ভোল্ট", "category": "electrical", "aliases": ["battery", "55d23", "ns60"] },
+    { "name_en": "AC gas refill (R134a)", "name_bn": "এসি গ্যাস রিফিল", "category": "ac", "aliases": ["ac gas", "r134a", "refrigerant"] },
+    { "name_en": "AC compressor", "name_bn": "এসি কম্প্রেসর", "category": "ac", "aliases": ["ac compressor", "compressor"] },
+    { "name_en": "Coolant 4L", "name_bn": "কুল্যান্ট (৪ লিটার)", "category": "cooling", "aliases": ["coolant", "radiator coolant", "llc"] },
+    { "name_en": "Thermostat", "name_bn": "থার্মোস্ট্যাট", "category": "cooling", "aliases": ["thermostat"] },
+    { "name_en": "Radiator", "name_bn": "রেডিয়েটর", "category": "cooling", "aliases": ["radiator"] },
+    { "name_en": "Alternator", "name_bn": "অল্টারনেটর", "category": "electrical", "aliases": ["alternator", "dynamo"] },
+    { "name_en": "Engine mount", "name_bn": "ইঞ্জিন মাউন্ট", "category": "engine", "aliases": ["engine mount", "engine mounting"] }
+  ],
+
+  "jobs": [
+    {
+      "code": "OIL_SERVICE", "name_en": "Engine oil and filter change", "name_bn": "ইঞ্জিন অয়েল ও ফিল্টার পরিবর্তন",
+      "hours": 0.5, "safety": false,
+      "parts": [["Engine oil 4L (0W-20)", 1], ["Oil filter", 1]],
+      "keywords": "oil change servicing service mobil mobil change engine oil oil light তেল মবিল সার্ভিসিং"
+    },
+    {
+      "code": "AIR_FILTER", "name_en": "Air filter replacement", "name_bn": "এয়ার ফিল্টার পরিবর্তন",
+      "hours": 0.25, "safety": false,
+      "parts": [["Air filter", 1]],
+      "keywords": "air filter low pickup mileage kom tel beshi khay dust ময়লা ফিল্টার"
+    },
+    {
+      "code": "SPARK_PLUGS", "name_en": "Spark plug replacement (4)", "name_bn": "স্পার্ক প্লাগ পরিবর্তন (৪টি)",
+      "hours": 0.75, "safety": false,
+      "parts": [["Spark plug (iridium)", 4]],
+      "keywords": "spark plug hard start start hoy na misfire jerking jhakuni pickup nai কাঁপে স্টার্ট প্লাগ"
+    },
+    {
+      "code": "IGNITION_COIL", "name_en": "Ignition coil replacement (1)", "name_bn": "ইগনিশন কয়েল পরিবর্তন (১টি)",
+      "hours": 0.5, "safety": false,
+      "parts": [["Ignition coil", 1]],
+      "keywords": "ignition coil misfire check engine light engine kape vibration idle shaking jhakuni কয়েল ঝাঁকুনি"
+    },
+    {
+      "code": "BRAKE_PADS_F", "name_en": "Front brake pad replacement", "name_bn": "সামনের ব্রেক প্যাড পরিবর্তন",
+      "hours": 1.0, "safety": true,
+      "parts": [["Front brake pads (set)", 1]],
+      "keywords": "brake pad brake awaj brake squeal squeak brake e shobdo brake kom dhore ব্রেক আওয়াজ শব্দ প্যাড"
+    },
+    {
+      "code": "BRAKE_SHOES_R", "name_en": "Rear brake shoe replacement", "name_bn": "পেছনের ব্রেক শু পরিবর্তন",
+      "hours": 1.25, "safety": true,
+      "parts": [["Rear brake shoes (set)", 1]],
+      "keywords": "rear brake handbrake hand brake loose pichoner brake drum brake shoe পেছনের ব্রেক হ্যান্ডব্রেক"
+    },
+    {
+      "code": "BRAKE_DISCS_F", "name_en": "Front brake disc and pad replacement", "name_bn": "সামনের ব্রেক ডিস্ক ও প্যাড পরিবর্তন",
+      "hours": 1.5, "safety": true,
+      "parts": [["Front brake disc", 2], ["Front brake pads (set)", 1]],
+      "keywords": "brake disc rotor brake vibration steering kape brake korle grinding ghosha awaj ডিস্ক ব্রেক কাঁপে"
+    },
+    {
+      "code": "BRAKE_FLUID", "name_en": "Brake fluid change", "name_bn": "ব্রেক ফ্লুইড পরিবর্তন",
+      "hours": 0.75, "safety": true,
+      "parts": [["Brake fluid 1L (DOT 3)", 1]],
+      "keywords": "brake fluid brake oil spongy brake pedal soft brake niche jay brake light ব্রেক অয়েল প্যাডেল নরম"
+    },
+    {
+      "code": "SHOCKS_F", "name_en": "Front shock absorber replacement (pair)", "name_bn": "সামনের শক অ্যাবজর্বার পরিবর্তন (জোড়া)",
+      "hours": 2.0, "safety": true,
+      "parts": [["Front shock absorber", 2]],
+      "keywords": "front shock absorber bouncy bumpy jhakuni gorte dhakka thumping leak samner shock শক ঝাঁকুনি গর্ত"
+    },
+    {
+      "code": "SHOCKS_R", "name_en": "Rear shock absorber replacement (pair)", "name_bn": "পেছনের শক অ্যাবজর্বার পরিবর্তন (জোড়া)",
+      "hours": 1.5, "safety": true,
+      "parts": [["Rear shock absorber", 2]],
+      "keywords": "rear shock pichoner shock rear bouncing rear noise back side dhakka পেছনের শক"
+    },
+    {
+      "code": "STAB_LINKS", "name_en": "Stabilizer link replacement (pair)", "name_bn": "স্টেবিলাইজার লিংক পরিবর্তন (জোড়া)",
+      "hours": 0.75, "safety": true,
+      "parts": [["Stabilizer link", 2]],
+      "keywords": "stabilizer link khot khot khat khat awaj knocking clunk rattle speed breaker e awaj ঠক ঠক খট খট আওয়াজ"
+    },
+    {
+      "code": "CV_JOINT", "name_en": "CV joint replacement (1)", "name_bn": "সিভি জয়েন্ট পরিবর্তন (১টি)",
+      "hours": 1.5, "safety": true,
+      "parts": [["CV joint (outer)", 1]],
+      "keywords": "cv joint turn korle awaj clicking turning tak tak steering ghurale shobdo boot torn grease টার্ন ঘোরালে টক টক"
+    },
+    {
+      "code": "CVT_FLUID", "name_en": "CVT fluid change", "name_bn": "সিভিটি ফ্লুইড পরিবর্তন",
+      "hours": 1.0, "safety": false,
+      "parts": [["CVT fluid 4L", 1]],
+      "keywords": "cvt gear oil transmission slipping jerk gear change delay pickup slow whining gear somossa গিয়ার"
+    },
+    {
+      "code": "BATTERY", "name_en": "Battery replacement", "name_bn": "ব্যাটারি পরিবর্তন",
+      "hours": 0.25, "safety": false,
+      "parts": [["Battery 12V (55D23)", 1]],
+      "keywords": "battery dead start hoy na no crank click sound battery down jump start battery light ব্যাটারি স্টার্ট হয় না"
+    },
+    {
+      "code": "AC_SERVICE", "name_en": "AC service and gas refill", "name_bn": "এসি সার্ভিসিং ও গ্যাস রিফিল",
+      "hours": 1.0, "safety": false,
+      "parts": [["AC gas refill (R134a)", 1], ["Cabin AC filter", 1]],
+      "keywords": "ac thanda hoy na ac cooling kom ac gas weak airflow bad smell ac kom thanda এসি ঠান্ডা হয় না গ্যাস"
+    },
+    {
+      "code": "AC_COMPRESSOR", "name_en": "AC compressor replacement", "name_bn": "এসি কম্প্রেসর পরিবর্তন",
+      "hours": 3.0, "safety": false,
+      "parts": [["AC compressor", 1], ["AC gas refill (R134a)", 1]],
+      "keywords": "ac compressor ac on korle awaj ac grinding noise ac clutch ac kaj kore na ac totally off কম্প্রেসর"
+    },
+    {
+      "code": "COOLING_SERVICE", "name_en": "Coolant flush and thermostat replacement", "name_bn": "কুল্যান্ট ফ্লাশ ও থার্মোস্ট্যাট পরিবর্তন",
+      "hours": 1.0, "safety": false,
+      "parts": [["Coolant 4L", 1], ["Thermostat", 1]],
+      "keywords": "overheating engine gorom temperature beshi temp meter upore coolant thermostat heater ইঞ্জিন গরম তাপমাত্রা"
+    },
+    {
+      "code": "RADIATOR", "name_en": "Radiator replacement", "name_bn": "রেডিয়েটর পরিবর্তন",
+      "hours": 2.0, "safety": false,
+      "parts": [["Radiator", 1], ["Coolant 4L", 1]],
+      "keywords": "radiator leak pani pore coolant leak green water under car overheating radiator fata রেডিয়েটর লিক পানি"
+    },
+    {
+      "code": "ALTERNATOR", "name_en": "Alternator replacement", "name_bn": "অল্টারনেটর পরিবর্তন",
+      "hours": 1.5, "safety": false,
+      "parts": [["Alternator", 1]],
+      "keywords": "alternator battery charge hoy na charging light dim lights battery bar bar down dynamo অল্টারনেটর চার্জ"
+    },
+    {
+      "code": "ENGINE_MOUNTS", "name_en": "Engine mount replacement (2)", "name_bn": "ইঞ্জিন মাউন্ট পরিবর্তন (২টি)",
+      "hours": 1.5, "safety": false,
+      "parts": [["Engine mount", 2]],
+      "keywords": "engine mount vibration idle e kape gear dile dhakka engine shake cabin vibration kapuni ইঞ্জিন কাঁপে মাউন্ট"
+    }
+  ]
+}
