@@ -34,6 +34,7 @@ class Vehicle(db.Model):
     )
 
     owner = db.relationship("User", back_populates="vehicles")
+    estimates = db.relationship("Estimate", back_populates="vehicle", passive_deletes=True)
 
     @property
     def label(self):
