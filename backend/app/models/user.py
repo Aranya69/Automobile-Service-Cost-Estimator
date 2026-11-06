@@ -17,6 +17,9 @@ class User(db.Model):
     vehicles = db.relationship(
         "Vehicle", back_populates="owner", cascade="all, delete-orphan", passive_deletes=True
     )
+    estimates = db.relationship(
+        "Estimate", back_populates="owner", cascade="all, delete-orphan", passive_deletes=True
+    )
 
     def set_password(self, password):
         # Werkzeug uses scrypt with a random salt by default.
