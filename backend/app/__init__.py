@@ -24,11 +24,13 @@ def create_app(config_name=None, overrides=None):
     from . import models  # noqa: F401  (registers tables with SQLAlchemy)
     from .routes.auth import bp as auth_bp
     from .routes.estimates import bp as estimates_bp
+    from .routes.history import bp as history_bp
     from .routes.vehicles import bp as vehicles_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(vehicles_bp)
     app.register_blueprint(estimates_bp)
+    app.register_blueprint(history_bp)
 
     @app.get("/api/health")
     def health():
