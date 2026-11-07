@@ -44,6 +44,10 @@ class BaseConfig:
     RATELIMIT_STORAGE_URI = "memory://"
     RATELIMIT_HEADERS_ENABLED = True
 
+    # Optional. Without a key the estimate page falls back to choosing jobs by hand.
+    GOOGLE_API_KEY = None
+    GEMINI_MODEL = "gemini-2.5-flash"
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
@@ -87,3 +91,5 @@ def load_config(app, name):
     )
     app.config["JWT_COOKIE_SECURE"] = env_bool("COOKIE_SECURE", config.JWT_COOKIE_SECURE)
     app.config["RATELIMIT_STORAGE_URI"] = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+    app.config["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_API_KEY", "").strip() or None
+    app.config["GEMINI_MODEL"] = os.environ.get("GEMINI_MODEL", "").strip() or config.GEMINI_MODEL
