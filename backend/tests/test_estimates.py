@@ -191,3 +191,11 @@ def test_prompt_contains_car_and_catalogue(app, car):
     assert "BRAKE_PADS_F" in system
     assert "84,000 km" in system
     assert db.session.execute(db.select(Part)).first() is not None
+
+
+@pytest.mark.parametrize(
+    "text, script",
+    [("AC thanda hoy na", "latin"), ("The AC is weak", "latin"), ("এসি ঠান্ডা হয় না", "bangla")],
+)
+def test_reply_script_follows_the_owner(text, script):
+    assert agent.owner_script(text, []) == script
