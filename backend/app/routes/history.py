@@ -1,14 +1,22 @@
+from datetime import timedelta
+
 from flask import Blueprint, request
 from flask_jwt_extended import current_user, jwt_required
 
 from ..errors import APIError
 from ..extensions import db
 from ..models import Estimate
+from ..models.common import utcnow
 
 bp = Blueprint("history", __name__, url_prefix="/api/estimates")
 
 PER_PAGE_DEFAULT = 20
 PER_PAGE_MAX = 50
+
+SORTS = {
+    "newest": (Estimate.created_at.desc(),),
+    "cost": (Estimate.total_likely.desc(), Estimate.created_at.desc()),
+}
 
 
 def _positive_int(name, default, maximum=None):
@@ -36,18 +44,24 @@ def list_estimates():
     page = _positive_int("page", 1)
     per_page = _positive_int("per_page", PER_PAGE_DEFAULT, PER_PAGE_MAX)
     vehicle_id = request.args.get("vehicle_id")
+    days = _positive_int("days", None)
+    sort = request.args.get("sort", "newest")
+    if sort not in SORTS:
+        raise APIError(f"'sort' must be one of: {', '.join(SORTS)}.", 400)
 
     query = db.select(Estimate).filter_by(user_id=current_user.id)
     if vehicle_id:
         if not vehicle_id.isdigit():
             raise APIError("'vehicle_id' must be a number.", 400)
         query = query.filter_by(vehicle_id=int(vehicle_id))
+    if days:
+        query = query.where(Estimate.created_at >= utcnow() - timedelta(days=days))
 
     total = db.session.execute(
         db.select(db.func.count()).select_from(query.subquery())
     ).scalar_one()
     estimates = db.session.execute(
-        query.order_by(Estimate.created_at.desc(), Estimate.id.desc())
+        query.order_by(*SORTS[sort], Estimate.id.desc())
         .limit(per_page)
         .offset((page - 1) * per_page)
     ).scalars()
