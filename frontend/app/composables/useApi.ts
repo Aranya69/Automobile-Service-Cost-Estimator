@@ -3,11 +3,18 @@ type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 export class ApiError extends Error {
   status: number
   fields: Record<string, string>
+  data: Record<string, any>
 
-  constructor(message: string, status: number, fields: Record<string, string> = {}) {
+  constructor(
+    message: string,
+    status: number,
+    fields: Record<string, string> = {},
+    data: Record<string, any> = {},
+  ) {
     super(message)
     this.status = status
     this.fields = fields
+    this.data = data
   }
 }
 
@@ -42,7 +49,7 @@ export function useApi() {
       const message =
         (data && typeof data.message === 'string' && data.message) ||
         'Could not reach the server. Please try again.'
-      throw new ApiError(message, err?.statusCode ?? 0, data?.fields ?? {})
+      throw new ApiError(message, err?.statusCode ?? 0, data?.fields ?? {}, data ?? {})
     }
   }
 
