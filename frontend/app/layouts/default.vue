@@ -2,7 +2,20 @@
 const { user, logout } = useAuth()
 const leaving = ref(false)
 
-const firstName = computed(() => user.value?.name.split(' ')[0] ?? '')
+const NAV = [
+  { to: '/estimate', label: 'New estimate' },
+  { to: '/vehicles', label: 'My cars' },
+  { to: '/history', label: 'History' },
+]
+
+const initials = computed(() =>
+  (user.value?.name ?? '')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join(''),
+)
 
 async function onLogout() {
   leaving.value = true
@@ -15,25 +28,28 @@ async function onLogout() {
 <template>
   <div class="shell">
     <header class="topbar">
-      <div class="container topbar-inner">
-        <NuxtLink to="/" class="brand">
-          <span class="brand-mark">ASCE</span>
-          <span class="brand-sub">Service Cost Estimator</span>
-        </NuxtLink>
+      <div class="container bar">
+        <BrandMark :to="user ? '/vehicles' : '/'" />
 
-        <nav v-if="user" class="nav">
-          <NuxtLink to="/estimate">New estimate</NuxtLink>
-          <NuxtLink to="/vehicles">My cars</NuxtLink>
-          <NuxtLink to="/history">History</NuxtLink>
-          <NuxtLink to="/account" class="who" :title="user.email">{{ firstName }}</NuxtLink>
+        <nav v-if="user" class="nav" aria-label="Main">
+          <NuxtLink v-for="item in NAV" :key="item.to" :to="item.to" class="nav-item">
+            {{ item.label }}
+          </NuxtLink>
+        </nav>
+        <div v-else class="nav" />
+
+        <div v-if="user" class="me">
+          <NuxtLink to="/account" class="avatar" :title="`${user.name} · ${user.email}`">
+            {{ initials }}
+          </NuxtLink>
           <button class="btn btn-quiet" type="button" :disabled="leaving" @click="onLogout">
             Log out
           </button>
-        </nav>
-        <nav v-else class="nav">
-          <NuxtLink to="/login">Log in</NuxtLink>
+        </div>
+        <div v-else class="me">
+          <NuxtLink to="/login" class="login-link">Log in</NuxtLink>
           <NuxtLink to="/register" class="btn btn-primary">Register</NuxtLink>
-        </nav>
+        </div>
       </div>
     </header>
 
@@ -41,8 +57,8 @@ async function onLogout() {
       <slot />
     </main>
 
-    <footer class="footer container small muted">
-      Prices are estimates from local garage and market data. Final cost depends on the garage.
+    <footer class="foot container small muted">
+      Prices are estimates; the final cost depends on the garage.
     </footer>
   </div>
 </template>
@@ -55,76 +71,93 @@ async function onLogout() {
 }
 
 .topbar {
-  background: var(--surface);
-  border-bottom: 3px solid var(--red-500);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
 }
 
-.topbar-inner {
+.bar {
+  min-height: 68px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  min-height: 60px;
+  gap: 8px 32px;
   padding-top: 8px;
   padding-bottom: 8px;
-}
-
-.brand {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  text-decoration: none;
-  color: var(--ink);
-}
-
-.brand-mark {
-  font-family: var(--font-head);
-  font-weight: 700;
-  font-size: 1.35rem;
-  letter-spacing: 0.06em;
-  color: var(--red-600);
-}
-
-.brand-sub {
-  font-size: 0.85rem;
-  color: var(--ink-soft);
 }
 
 .nav {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 18px;
+  gap: 4px;
+  flex: 1;
 }
 
-.nav a:not(.btn) {
-  color: var(--ink);
-  text-decoration: none;
-  font-weight: 500;
-  padding: 4px 0;
-  border-bottom: 2px solid transparent;
-}
-
-.nav a:not(.btn):hover,
-.nav a.router-link-active:not(.btn) {
-  border-bottom-color: var(--red-400);
-}
-
-.nav .who {
+.nav-item {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--red-700);
 }
 
-main { flex: 1; }
+.nav-item:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
 
-.footer {
-  padding-top: 20px;
-  padding-bottom: 24px;
+.nav-item.router-link-active {
+  background: var(--signal-soft);
+}
+
+.me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--signal);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.avatar:hover {
+  color: var(--signal);
+  outline: 3px solid var(--signal-soft);
+}
+
+.login-link {
+  font-weight: 600;
+  font-size: 15px;
+  padding: 10px 12px;
+}
+
+main {
+  flex: 1;
+}
+
+.foot {
+  padding-top: 24px;
+  padding-bottom: 32px;
   border-top: 1px solid var(--line);
 }
 
-@media (max-width: 520px) {
-  .brand-sub { display: none; }
+@media (max-width: 720px) {
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .me {
+    margin-left: auto;
+  }
 }
 </style>
