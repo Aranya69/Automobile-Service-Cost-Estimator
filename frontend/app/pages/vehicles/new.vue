@@ -5,27 +5,15 @@ useHead({ title: 'Add a car · ASCE' })
 const api = useApi()
 
 async function save(input: VehicleInput) {
-  await api.post('/vehicles', input)
-  await navigateTo('/vehicles')
+  const res = await api.post<{ vehicle: Vehicle }>('/vehicles', input)
+  // Came from the landing page with a problem typed in: go straight to the estimate.
+  const draft = useDraft().load()
+  await navigateTo(draft?.problem ? `/estimate?vehicle=${res.vehicle.id}` : '/vehicles')
 }
 </script>
 
 <template>
   <div class="page">
-    <div class="page-head">
-      <div>
-        <h1>Add a car</h1>
-        <p class="lead">Only Toyota Axio, Premio, Allion, Corolla and Noah for now.</p>
-      </div>
-    </div>
-    <div class="form-box">
-      <VehicleForm submit-label="Add car" :save="save" />
-    </div>
+    <VehicleForm title="Add a car" submit-label="Save car" :save="save" from-draft />
   </div>
 </template>
-
-<style scoped>
-.form-box {
-  max-width: 620px;
-}
-</style>
