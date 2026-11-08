@@ -199,3 +199,23 @@ def test_prompt_contains_car_and_catalogue(app, car):
 )
 def test_reply_script_follows_the_owner(text, script):
     assert agent.owner_script(text, []) == script
+
+
+def test_highlights_are_public_and_priced_from_data(client, app):
+    from scripts.import_prices import DATA, run
+
+    run(DATA / "sample_bikroy_listings.csv", DATA / "sample_garage_prices.csv")
+    res = client.get("/api/estimates/highlights")  # no login
+    assert res.status_code == 200
+    data = res.get_json()
+    assert [t["key"] for t in data["tiles"]][:3] == ["brakes", "ac", "battery"]
+    assert all(t["from"] > 0 for t in data["tiles"])
+    assert len(data["samples"]) == 3
+    sample = data["samples"][0]
+    assert sample["car"] == "Toyota Axio 2016"
+    assert sample["total_min"] <= sample["total_likely"] <= sample["total_max"]
+    assert sample["parts_share"] + sample["labour_share"] == 100
+
+
+def test_highlights_empty_without_price_data(client):
+    assert client.get("/api/estimates/highlights").get_json() == {"tiles": [], "samples": []}
