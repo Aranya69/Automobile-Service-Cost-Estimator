@@ -19,35 +19,22 @@ async function save(input: VehicleInput) {
 
 <template>
   <div class="page">
-    <div class="page-head">
-      <div>
-        <h1>Edit car</h1>
-        <p v-if="vehicle" class="lead">{{ vehicle.label }}</p>
-      </div>
-    </div>
-
-    <div v-if="error" class="panel empty">
+    <div v-if="error" class="empty">
       <p>This car could not be found.</p>
-      <NuxtLink to="/vehicles" class="btn">Back to my cars</NuxtLink>
+      <NuxtLink to="/vehicles" class="btn btn-primary">Back to my cars</NuxtLink>
     </div>
 
-    <div v-else-if="vehicle" class="form-box">
-      <VehicleForm
-        submit-label="Save changes"
-        :save="save"
-        :initial="{
-          model: vehicle.model,
-          year: vehicle.year,
-          engine_cc: vehicle.engine_cc,
-          odometer_km: vehicle.odometer_km,
-        }"
-      />
-    </div>
+    <VehicleForm
+      v-else-if="vehicle"
+      :title="`Edit ${vehicle.model} ${vehicle.year}`"
+      submit-label="Save changes"
+      :save="save"
+      :initial="{
+        model: vehicle.model,
+        year: vehicle.year,
+        engine_cc: vehicle.engine_cc,
+        odometer_km: vehicle.odometer_km,
+      }"
+    />
   </div>
 </template>
-
-<style scoped>
-.form-box {
-  max-width: 620px;
-}
-</style>
