@@ -29,6 +29,9 @@ function readCsrfCookie(): string | undefined {
 export function useApi() {
   // During server rendering, pass the browser's cookies on to Flask.
   const forwarded = import.meta.server ? useRequestHeaders(['cookie']) : {}
+  // Same state as useAuth(). Cleared when the session expires mid-visit, so the
+  // navbar updates and the auth middleware sends the user to the login page.
+  const authUser = useState<unknown>('auth-user', () => null)
 
   async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = { ...forwarded }
@@ -45,6 +48,9 @@ export function useApi() {
         credentials: 'include',
       })
     } catch (err: any) {
+      if (err?.statusCode === 401 && authUser.value && !path.startsWith('/auth/')) {
+        authUser.value = null
+      }
       const data = err?.data
       const message =
         (data && typeof data.message === 'string' && data.message) ||
