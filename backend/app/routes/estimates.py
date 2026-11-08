@@ -121,6 +121,64 @@ def _save(vehicle, req, result, explanation, ai_warnings, method):
     return data
 
 
+# Landing page: "Common repairs" tiles and sample job cards, priced from real data.
+HIGHLIGHT_TILES = [
+    ("brakes", "Brakes", "BRAKE_PADS_F"),
+    ("ac", "AC", "AC_SERVICE"),
+    ("battery", "Battery", "BATTERY"),
+    ("suspension", "Suspension", "STAB_LINKS"),
+    ("servicing", "Servicing", "OIL_SERVICE"),
+    ("cooling", "Overheating", "COOLING_SERVICE"),
+]
+HIGHLIGHT_SAMPLES = [
+    ("Axio", 2016, "BRAKE_PADS_F", "local"),
+    ("Premio", 2014, "AC_SERVICE", "workshop"),
+    ("Noah", 2012, "BATTERY", "local"),
+]
+
+
+def _try_estimate(job_code, model, tier):
+    try:
+        result = calculate_estimate([job_code], model, tier)
+    except EstimateInputError:
+        return None
+    return None if result["confidence"] == "insufficient" else result
+
+
+@bp.get("/highlights")
+def highlights():
+    """Public: starting prices per repair type and three sample estimates."""
+    from ..models.price import CAR_MODELS
+
+    tiles = []
+    for key, name, code in HIGHLIGHT_TILES:
+        results = [r for r in (_try_estimate(code, m, "local") for m in CAR_MODELS) if r]
+        if results:
+            tiles.append({"key": key, "name": name, "job_code": code,
+                          "from": min(r["total_min"] for r in results)})
+
+    samples = []
+    for model, year, code, tier in HIGHLIGHT_SAMPLES:
+        result = _try_estimate(code, model, tier)
+        if not result or not result["total_likely"]:
+            continue
+        parts = sum(i["price_likely"] for i in result["items"]
+                    if i["kind"] == "part" and i["price_likely"] is not None)
+        parts_share = round(100 * parts / result["total_likely"])
+        samples.append({
+            "car": f"Toyota {model} {year}",
+            "job": result["jobs"][0]["name_en"],
+            "garage_tier": tier,
+            "total_min": result["total_min"],
+            "total_likely": result["total_likely"],
+            "total_max": result["total_max"],
+            "parts_share": parts_share,
+            "labour_share": 100 - parts_share,
+        })
+
+    return {"tiles": tiles, "samples": samples}
+
+
 @bp.get("/jobs")
 @jwt_required()
 def list_jobs():
