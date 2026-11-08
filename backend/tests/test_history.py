@@ -122,3 +122,23 @@ def test_other_users_cannot_see_or_delete(app, user_with_estimates):
 def test_login_required(client):
     assert client.get("/api/estimates").status_code == 401
     assert client.get("/api/estimates/1").status_code == 401
+
+
+def test_sort_by_cost(user_with_estimates):
+    client, car, old, new = user_with_estimates
+    cheap = db.session.get(Estimate, new)
+    cheap.total_likely = 1000
+    db.session.commit()
+    ids = [e["id"] for e in client.get("/api/estimates?sort=cost").get_json()["estimates"]]
+    assert ids == [old, new]
+    assert client.get("/api/estimates?sort=random").status_code == 400
+
+
+def test_filter_by_days(user_with_estimates):
+    client, car, old, new = user_with_estimates
+    ancient = db.session.get(Estimate, old)
+    ancient.created_at = datetime.now(timezone.utc) - timedelta(days=200)
+    db.session.commit()
+    assert [e["id"] for e in client.get("/api/estimates?days=30").get_json()["estimates"]] == [new]
+    assert client.get("/api/estimates?days=365").get_json()["total"] == 2
+    assert client.get("/api/estimates?days=abc").status_code == 400
