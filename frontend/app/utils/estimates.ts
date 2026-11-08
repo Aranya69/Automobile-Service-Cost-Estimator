@@ -43,9 +43,9 @@ export interface JobOption {
 }
 
 export const GARAGE_TIERS: { value: GarageTier; label: string; hint: string }[] = [
-  { value: 'local', label: 'Local garage', hint: 'Roadside or neighbourhood mechanic' },
-  { value: 'workshop', label: 'Workshop', hint: 'Established multi-bay workshop' },
-  { value: 'dealer', label: 'Service centre', hint: 'Dealer or brand service centre' },
+  { value: 'local', label: 'Local garage', hint: 'Neighbourhood workshop, lowest labour rate' },
+  { value: 'workshop', label: 'Multi-brand garage', hint: 'Established workshop with more bays' },
+  { value: 'dealer', label: 'Service centre', hint: 'Authorised or brand service centre' },
 ]
 
 export const CONFIDENCE_TEXT: Record<Confidence, string> = {
@@ -53,6 +53,17 @@ export const CONFIDENCE_TEXT: Record<Confidence, string> = {
   medium: 'Medium confidence',
   low: 'Low confidence',
   insufficient: 'Not enough data',
+}
+
+export const CONFIDENCE_NOTE: Record<Confidence, string> = {
+  high: '5+ prices per part, garage-checked',
+  medium: 'At least 2 prices per part',
+  low: 'Only one price for some parts',
+  insufficient: 'Some parts have no price data',
+}
+
+export function estimateNo(id: number) {
+  return `#A-${String(id).padStart(4, '0')}`
 }
 
 export function tierLabel(tier: string) {

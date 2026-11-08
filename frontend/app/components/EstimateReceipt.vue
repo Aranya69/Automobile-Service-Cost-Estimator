@@ -1,261 +1,459 @@
 <script setup lang="ts">
+// The estimate as a garage job card.
 const props = defineProps<{ estimate: EstimateDetail }>()
 
-// Group the lines by repair job, keeping the order the estimator returned.
-const groups = computed(() => {
-  const byJob = new Map<string, EstimateItem[]>()
-  for (const item of props.estimate.items) {
-    if (!byJob.has(item.job_code)) byJob.set(item.job_code, [])
-    byJob.get(item.job_code)!.push(item)
-  }
-  const names = new Map((props.estimate.jobs ?? []).map((j) => [j.code, j]))
-  return [...byJob.entries()].map(([code, items]) => ({
-    code,
-    title: names.get(code)?.name_en ?? jobNameFromLabour(items) ?? code,
-    titleBn: names.get(code)?.name_bn ?? '',
-    items,
-  }))
+// Saved estimates have no job list; the labour line reads "Labour: <job name> (1.5 h)".
+function jobNameFromLabour(item: EstimateItem) {
+  return item.description.replace(/^Labour: /, '').replace(/ \([\d.]+ h\)$/, '')
+}
+
+const jobNames = computed(() => {
+  if (props.estimate.jobs?.length) return props.estimate.jobs.map((j) => j.name_en)
+  return props.estimate.items.filter((i) => i.kind === 'labour').map(jobNameFromLabour)
 })
 
-// Saved estimates have no job list; the labour line reads "Labour: <job name> (1.5 h)".
-function jobNameFromLabour(items: EstimateItem[]) {
-  const labour = items.find((i) => i.kind === 'labour')
-  return labour?.description.replace(/^Labour: /, '').replace(/ \([\d.]+ h\)$/, '')
+const lines = computed(() =>
+  props.estimate.items.map((item) => ({
+    ...item,
+    name: item.kind === 'labour' ? `Labour · ${jobNameFromLabour(item)}` : item.description,
+    detail: item.kind === 'labour' ? `${item.quantity} h` : `× ${item.quantity}`,
+    missing: item.price_min === null,
+  })),
+)
+
+function sum(kind: 'part' | 'labour', key: 'price_min' | 'price_max') {
+  return props.estimate.items
+    .filter((i) => i.kind === kind && i[key] !== null)
+    .reduce((total, i) => total + (i[key] as number), 0)
 }
 
-const hasLikely = computed(() => props.estimate.items.some((i) => i.price_likely != null))
+const split = computed(() => {
+  const parts = { min: sum('part', 'price_min'), max: sum('part', 'price_max') }
+  const labour = { min: sum('labour', 'price_min'), max: sum('labour', 'price_max') }
+  const mid = (r: { min: number; max: number }) => (r.min + r.max) / 2
+  const total = mid(parts) + mid(labour)
+  return { parts, labour, partsShare: total ? Math.round((100 * mid(parts)) / total) : 0 }
+})
 
-function qty(item: EstimateItem) {
-  return item.kind === 'labour' ? `${item.quantity} h` : `× ${item.quantity}`
-}
+// Where "likely" sits between the lowest and highest total, for the marker.
+const likelyAt = computed(() => {
+  const { total_min: lo, total_max: hi, total_likely: likely } = props.estimate
+  if (hi <= lo) return 50
+  return Math.min(100, Math.max(0, ((likely - lo) / (hi - lo)) * 100))
+})
+
+const safetyWarnings = computed(() =>
+  props.estimate.warnings.filter((w) => !w.startsWith('Not enough price data')),
+)
+const dataWarnings = computed(() =>
+  props.estimate.warnings.filter((w) => w.startsWith('Not enough price data')),
+)
+
+// "Got a quote from the garage?"
+const quote = ref<number | null>(null)
+const verdict = computed(() => {
+  const q = quote.value
+  if (!q || q <= 0) return null
+  const { total_min: lo, total_max: hi } = props.estimate
+  if (q < lo) return { cls: 'medium', text: 'Below usual range – ask what is included' }
+  if (q <= hi) return { cls: 'high', text: 'Within usual range' }
+  if (q <= hi * 1.25) return { cls: 'medium', text: 'Above usual range – ask why' }
+  return { cls: 'low', text: 'Well above usual range – get a second quote' }
+})
 </script>
 
 <template>
-  <article class="receipt">
-    <header class="receipt-head">
-      <div>
-        <p class="label">Estimate for</p>
-        <h2>{{ estimate.vehicle_label }}</h2>
-        <p class="meta small">
-          {{ tierLabel(estimate.garage_tier) }} · {{ formatDate(estimate.created_at) }}
-          <template v-if="estimate.method === 'manual'"> · jobs chosen by hand</template>
+  <div class="receipt-stack">
+    <article class="panel ticket job-card">
+      <header class="meta">
+        <div>
+          <div class="muted">Car</div>
+          <div class="meta-value">{{ estimate.vehicle_label }}</div>
+        </div>
+        <div>
+          <div class="muted">Garage type</div>
+          <div class="meta-value">{{ tierLabel(estimate.garage_tier) }}</div>
+        </div>
+        <div>
+          <div class="muted">Date</div>
+          <div class="meta-value">{{ formatDate(estimate.created_at) }}</div>
+        </div>
+        <div>
+          <div class="muted">Estimate no.</div>
+          <div class="meta-value mono">{{ estimateNo(estimate.id) }}</div>
+        </div>
+      </header>
+
+      <section class="block total">
+        <div class="total-top">
+          <div>
+            <div class="muted">{{ jobNames.join(' + ') || 'Repair' }} · estimated total</div>
+            <div class="range mono">{{ formatTaka(estimate.total_min) }} – {{ formatTaka(estimate.total_max) }}</div>
+            <div class="likely">Most likely <b class="mono">{{ formatTaka(estimate.total_likely) }}</b></div>
+          </div>
+          <div class="conf">
+            <span class="tag" :class="estimate.confidence">
+              <span class="dot" />{{ CONFIDENCE_TEXT[estimate.confidence] }}
+            </span>
+            <span class="small muted">{{ CONFIDENCE_NOTE[estimate.confidence] }}</span>
+          </div>
+        </div>
+
+        <div class="range-bar" :style="{ '--at': `${likelyAt}%` }">
+          <span class="marker" />
+        </div>
+        <div class="range-labels mono">
+          <span>{{ formatTaka(estimate.total_min) }}<small>Lowest</small></span>
+          <span class="mid">{{ formatTaka(estimate.total_likely) }}<small>Likely</small></span>
+          <span class="end">{{ formatTaka(estimate.total_max) }}<small>Highest</small></span>
+        </div>
+
+        <div v-for="(w, i) in safetyWarnings" :key="`s${i}`" class="alert alert-safety" role="alert">
+          <AppIcon name="warning" :size="22" :stroke="2" class="alert-icon" />
+          <span>{{ w }}</span>
+        </div>
+        <p v-for="(w, i) in dataWarnings" :key="`d${i}`" class="alert alert-warn">
+          <AppIcon name="info" :size="18" :stroke="2" />{{ w }}
         </p>
-      </div>
-      <span class="tag" :class="`conf-${estimate.confidence}`">
-        {{ CONFIDENCE_TEXT[estimate.confidence] }}
-      </span>
-    </header>
+      </section>
 
-    <section class="totals">
-      <div>
-        <p class="label">Likely cost</p>
-        <p class="likely mono">{{ formatTaka(estimate.total_likely) }}</p>
-      </div>
-      <div class="range">
-        <p class="label">Range</p>
-        <p class="mono">{{ formatTaka(estimate.total_min) }} – {{ formatTaka(estimate.total_max) }}</p>
-      </div>
-    </section>
+      <section v-if="estimate.explanation" class="block">
+        <h3>What this means</h3>
+        <p class="explanation">{{ estimate.explanation }}</p>
+        <p class="small muted problem">You wrote: “{{ estimate.problem_text }}”</p>
+      </section>
 
-    <div v-if="estimate.warnings.length" class="warnings">
-      <p v-for="(w, i) in estimate.warnings" :key="i" class="alert alert-warn">{{ w }}</p>
+      <section class="block">
+        <h3>Itemised estimate</h3>
+        <div v-for="line in lines" :key="line.id" class="line" :class="{ missing: line.missing }">
+          <div class="line-main">
+            <span class="line-name">{{ line.name }}</span>
+            <span class="line-meta small">
+              <span class="kind"><i :class="line.kind" />{{ line.kind === 'part' ? 'Parts' : 'Labour' }}</span>
+              <span class="pill">{{ line.detail }}</span>
+            </span>
+          </div>
+          <div class="line-price">
+            <span v-if="line.missing" class="mono">No data</span>
+            <span v-else class="mono">{{ formatTaka(line.price_min) }} – {{ formatTaka(line.price_max) }}</span>
+            <span class="small" :class="line.missing ? 'warn-text' : 'muted'">
+              <template v-if="line.missing">Ask the garage for 2 quotes</template>
+              <template v-else-if="line.kind === 'part'">
+                {{ line.price_count }} price{{ line.price_count === 1 ? '' : 's' }}
+              </template>
+              <template v-else>Standard hours × rate</template>
+            </span>
+          </div>
+        </div>
+
+        <div class="split">
+          <div class="split-bar">
+            <span class="parts" :style="{ width: `${split.partsShare}%` }" />
+          </div>
+          <div class="split-legend small">
+            <span><i class="part" />Parts <b class="mono">{{ formatTaka(split.parts.min) }}–{{ formatTaka(split.parts.max).replace('৳', '') }}</b></span>
+            <span><i class="labour" />Labour <b class="mono">{{ formatTaka(split.labour.min) }}–{{ formatTaka(split.labour.max).replace('৳', '') }}</b></span>
+          </div>
+        </div>
+      </section>
+    </article>
+
+    <div class="panel-flat quote no-print">
+      <label for="quote" class="quote-label">Got a quote from the garage?</label>
+      <div class="quote-input">
+        <span class="mono">৳</span>
+        <input id="quote" v-model.number="quote" type="number" inputmode="numeric" min="0" placeholder="8500" />
+      </div>
+      <span v-if="verdict" class="tag" :class="verdict.cls">{{ verdict.text }}</span>
     </div>
-
-    <p class="problem small">
-      <span class="label">Problem:</span> “{{ estimate.problem_text }}”
-    </p>
-    <p v-if="estimate.explanation" class="explanation">{{ estimate.explanation }}</p>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th class="num">Qty</th>
-            <th class="num">Min</th>
-            <th v-if="hasLikely" class="num">Likely</th>
-            <th class="num">Max</th>
-          </tr>
-        </thead>
-        <tbody v-for="group in groups" :key="group.code">
-          <tr class="job-row">
-            <td :colspan="hasLikely ? 5 : 4">
-              <strong>{{ group.title }}</strong>
-              <span v-if="group.titleBn" class="bn"> · {{ group.titleBn }}</span>
-            </td>
-          </tr>
-          <tr v-for="item in group.items" :key="item.id" :class="{ missing: item.price_min === null }">
-            <td class="item-name">
-              {{ item.kind === 'labour' ? 'Labour' : item.description }}
-              <span v-if="item.kind === 'part' && item.price_count" class="count small">
-                {{ item.price_count }} price{{ item.price_count === 1 ? '' : 's' }}
-              </span>
-              <span v-if="item.price_min === null" class="count small">no price data</span>
-            </td>
-            <td class="num">{{ qty(item) }}</td>
-            <td class="num">{{ formatTaka(item.price_min) }}</td>
-            <td v-if="hasLikely" class="num">{{ formatTaka(item.price_likely) }}</td>
-            <td class="num">{{ formatTaka(item.price_max) }}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="2"><strong>Total</strong></td>
-            <td class="num">{{ formatTaka(estimate.total_min) }}</td>
-            <td v-if="hasLikely" class="num">{{ formatTaka(estimate.total_likely) }}</td>
-            <td class="num">{{ formatTaka(estimate.total_max) }}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <p class="fine small muted">
-      Parts prices come from market listings and garage price sheets for this model. Labour is
-      standard hours × the hourly rate for the garage type. The final bill depends on the
-      garage and what they find.
-    </p>
-  </article>
+  </div>
 </template>
 
 <style scoped>
-.receipt {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-top: 4px solid var(--red-500);
-  border-radius: var(--radius);
-  padding: 24px;
-}
-
-.receipt-head {
+.receipt-stack {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.receipt-head h2 {
-  margin: 0;
-}
-
-.label {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ink-soft);
+.job-card {
+  padding: 10px 0 0;
 }
 
 .meta {
-  margin: 2px 0 0;
-  color: var(--ink-soft);
+  padding: 24px 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  border-bottom: 1.5px dashed var(--line);
+  font-size: 14px;
 }
 
-.conf-high { background: var(--ok-bg); color: var(--ok); }
-.conf-medium { background: var(--warn-bg); color: var(--warn); }
-.conf-low { background: var(--red-100); color: var(--red-700); }
-.conf-insufficient { background: var(--red-100); color: var(--red-700); }
+.meta-value {
+  font-weight: 700;
+  font-size: 16px;
+}
 
-.totals {
+.block {
+  padding: 28px 32px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px 48px;
-  margin: 20px 0;
-  padding: 16px 0;
-  border-top: 1px dashed var(--line-strong);
-  border-bottom: 1px dashed var(--line-strong);
+  flex-direction: column;
+  gap: 14px;
 }
 
-.totals p {
+.block + .block {
+  border-top: 1.5px dashed var(--line);
+}
+
+.block h3 {
   margin: 0;
+}
+
+.total-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.range {
+  font-size: clamp(30px, 5vw, 44px);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-top: 4px;
 }
 
 .likely {
-  font-size: 2rem;
-  font-weight: 500;
-  color: var(--red-700);
-  line-height: 1.1;
-}
-
-.range .mono {
-  font-size: 1.15rem;
   margin-top: 6px;
 }
 
-.warnings {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 16px;
+.conf {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
-.warnings .alert {
-  margin: 0;
+.conf .tag {
+  font-size: 14px;
+  padding: 5px 12px;
 }
 
-.problem {
-  margin-bottom: 6px;
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-.problem .label {
-  display: inline;
+.range-bar {
+  position: relative;
+  height: 12px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--signal-soft), var(--signal) var(--at), var(--signal-soft));
+}
+
+.marker {
+  position: absolute;
+  left: var(--at);
+  top: -8px;
+  width: 4px;
+  height: 28px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: translateX(-2px);
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.range-labels small {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.range-labels .mid {
+  text-align: center;
+}
+
+.range-labels .end {
+  text-align: right;
+}
+
+.alert-icon {
+  color: var(--alert);
+  flex: none;
 }
 
 .explanation {
-  margin-bottom: 16px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
 }
 
-.job-row td {
-  background: var(--red-50);
-  border-bottom-color: var(--line);
-  padding-top: 8px;
-  padding-bottom: 8px;
+.problem {
+  margin: 0;
 }
 
-.bn {
-  color: var(--ink-soft);
-  font-weight: 400;
+.line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  padding: 16px 0;
+  border-bottom: 1.5px dashed var(--line);
 }
 
-.item-name {
-  padding-left: 20px;
+.line-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.count {
-  display: block;
-  color: var(--ink-soft);
-}
-
-tr.missing td {
-  color: var(--red-700);
-}
-
-tfoot td {
-  border-top: 2px solid var(--ink);
-  border-bottom: 0;
+.line-name {
+  font-size: 16px;
   font-weight: 600;
 }
 
-.fine {
-  margin: 16px 0 0;
+.line-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kind i,
+.split-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+i.part {
+  background: var(--parts);
+}
+
+i.labour {
+  background: var(--labour);
+}
+
+.pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+
+.line-price {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.line-price .mono {
+  font-size: 16px;
+}
+
+.line.missing .line-name,
+.line.missing .line-price .mono,
+.warn-text {
+  color: var(--alert);
+}
+
+.split {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.split-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--labour);
+}
+
+.split-bar .parts {
+  background: var(--parts);
+}
+
+.split-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.split-legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.quote-label {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.quote-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.quote-input input {
+  border: 0;
+  outline: none;
+  width: 120px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  background: transparent;
+}
+
+.quote .tag {
+  font-size: 14px;
+  padding: 6px 14px;
 }
 
 @media (max-width: 600px) {
-  .receipt {
-    padding: 16px;
+  .meta,
+  .block {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
-  .likely {
-    font-size: 1.6rem;
-  }
-
-  th,
-  td {
-    padding: 8px 6px;
-  }
-
-  .item-name {
-    padding-left: 10px;
+  .conf {
+    align-items: flex-start;
   }
 }
 </style>
