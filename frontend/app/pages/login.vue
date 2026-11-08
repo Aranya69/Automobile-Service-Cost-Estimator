@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ApiError } from '~/composables/useApi'
 
-definePageMeta({ middleware: 'guest' })
+definePageMeta({ layout: 'auth', middleware: 'guest' })
 useHead({ title: 'Log in · ASCE' })
 
 const route = useRoute()
@@ -22,7 +22,7 @@ async function submit() {
   busy.value = true
   try {
     await login(form.email, form.password)
-    await navigateTo(safeRedirect(route.query.redirect))
+    await navigateTo(safeRedirect(route.query.redirect, '/vehicles'))
   } catch (err) {
     if (err instanceof ApiError) {
       formError.value = err.message
@@ -38,61 +38,73 @@ async function submit() {
 </script>
 
 <template>
-  <div class="page">
-    <div class="narrow auth-box">
-      <h1>Log in</h1>
-      <p class="lead">Welcome back. Your cars and past estimates are waiting.</p>
+  <form class="auth-form" novalidate @submit.prevent="submit">
+    <h2>Welcome back</h2>
 
-      <form class="panel form" novalidate @submit.prevent="submit">
-        <p v-if="formError" class="alert alert-error" role="alert">{{ formError }}</p>
+    <p v-if="formError" class="alert alert-error" role="alert">
+      <AppIcon name="info" :size="18" :stroke="2" />{{ formError }}
+    </p>
 
-        <div class="field">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            v-model="form.email"
-            class="input"
-            :class="{ 'has-error': fieldErrors.email }"
-            type="email"
-            autocomplete="email"
-            required
-          />
-          <span v-if="fieldErrors.email" class="field-error">{{ fieldErrors.email }}</span>
-        </div>
+    <label class="field">
+      Email
+      <input
+        v-model="form.email"
+        class="input"
+        :class="{ 'has-error': fieldErrors.email }"
+        type="email"
+        autocomplete="email"
+      />
+      <span v-if="fieldErrors.email" class="field-error">
+        <AppIcon name="info" :size="16" :stroke="2" />{{ fieldErrors.email }}
+      </span>
+    </label>
 
-        <div class="field">
-          <label for="password">Password</label>
-          <input
-            id="password"
-            v-model="form.password"
-            class="input"
-            :class="{ 'has-error': fieldErrors.password }"
-            type="password"
-            autocomplete="current-password"
-            required
-          />
-          <span v-if="fieldErrors.password" class="field-error">{{ fieldErrors.password }}</span>
-        </div>
+    <label class="field">
+      Password
+      <input
+        v-model="form.password"
+        class="input"
+        :class="{ 'has-error': fieldErrors.password }"
+        type="password"
+        autocomplete="current-password"
+      />
+      <span v-if="fieldErrors.password" class="field-error">
+        <AppIcon name="info" :size="16" :stroke="2" />{{ fieldErrors.password }}
+      </span>
+    </label>
 
-        <button class="btn btn-primary btn-block" type="submit" :disabled="busy">
-          {{ busy ? 'Logging in…' : 'Log in' }}
-        </button>
-      </form>
+    <button class="btn btn-primary btn-lg" type="submit" :disabled="busy">
+      <span v-if="busy" class="spinner" />Log in
+    </button>
 
-      <p class="switch small">
-        New here? <NuxtLink to="/register">Create an account</NuxtLink>
-      </p>
-    </div>
-  </div>
+    <p class="switch">
+      New to ASCE? <NuxtLink to="/register">Create an account</NuxtLink>
+    </p>
+  </form>
 </template>
 
 <style scoped>
-.auth-box {
-  margin: 16px auto 0;
+.auth-form {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.auth-form h2 {
+  margin: 0;
 }
 
 .switch {
-  margin-top: 16px;
+  margin: 0;
   text-align: center;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.switch a {
+  font-weight: 600;
+  text-decoration: underline;
 }
 </style>

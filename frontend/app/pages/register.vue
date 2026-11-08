@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { ApiError } from '~/composables/useApi'
 import type { RegisterForm } from '~/composables/useAuth'
+import type { Draft } from '~/composables/useDraft'
 
-definePageMeta({ middleware: 'guest' })
+definePageMeta({ layout: 'auth', middleware: 'guest' })
 useHead({ title: 'Create account · ASCE' })
 
 const { register } = useAuth()
+const draftStore = useDraft()
+
+// Filled in on the client: what the visitor typed on the landing page.
+const draft = ref<Draft | null>(null)
+onMounted(() => {
+  draft.value = draftStore.load()
+})
 
 const form = reactive<RegisterForm>({
   name: '',
@@ -13,6 +21,7 @@ const form = reactive<RegisterForm>({
   password: '',
   confirm_password: '',
 })
+const showPassword = ref(false)
 const fieldErrors = ref<Record<string, string>>({})
 const formError = ref('')
 const busy = ref(false)
@@ -43,11 +52,12 @@ function onInput(field: Field) {
   if (fieldErrors.value[field]) checkField(field)
 }
 
+const emailTaken = computed(() => fieldErrors.value.email?.includes('already exists'))
+
 async function submit() {
   formError.value = ''
   const fields: Field[] = ['name', 'email', 'password', 'confirm_password']
-  const results = fields.map(checkField)
-  if (results.includes(false)) {
+  if (fields.map(checkField).includes(false)) {
     formError.value = 'Please fix the highlighted fields.'
     return
   }
@@ -55,7 +65,8 @@ async function submit() {
   busy.value = true
   try {
     await register({ ...form })
-    await navigateTo('/')
+    // Came from the landing page: add that car next, then estimate.
+    await navigateTo(draft.value ? '/vehicles/new' : '/vehicles')
   } catch (err) {
     if (err instanceof ApiError) {
       formError.value = err.message
@@ -70,102 +81,168 @@ async function submit() {
 </script>
 
 <template>
-  <div class="page">
-    <div class="narrow auth-box">
-      <h1>Create an account</h1>
-      <p class="lead">It takes a minute. We only use your email to log you in.</p>
-
-      <form class="panel form" novalidate @submit.prevent="submit">
-        <p v-if="formError" class="alert alert-error" role="alert">{{ formError }}</p>
-
-        <div class="field">
-          <label for="name">Full name</label>
-          <input
-            id="name"
-            v-model="form.name"
-            @blur="onBlur('name')"
-            @input="onInput('name')"
-            class="input"
-            :class="{ 'has-error': fieldErrors.name }"
-            autocomplete="name"
-            maxlength="60"
-            required
-          />
-          <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
-        </div>
-
-        <div class="field">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            v-model="form.email"
-            @blur="onBlur('email')"
-            @input="onInput('email')"
-            class="input"
-            :class="{ 'has-error': fieldErrors.email }"
-            type="email"
-            autocomplete="email"
-            required
-          />
-          <span v-if="fieldErrors.email" class="field-error">{{ fieldErrors.email }}</span>
-        </div>
-
-        <div class="field">
-          <label for="password">Password</label>
-          <input
-            id="password"
-            v-model="form.password"
-            @blur="onBlur('password')"
-            @input="onInput('password')"
-            class="input"
-            :class="{ 'has-error': fieldErrors.password }"
-            type="password"
-            autocomplete="new-password"
-            minlength="8"
-            maxlength="128"
-            required
-          />
-          <PasswordChecklist :password="form.password" />
-          <span v-if="fieldErrors.password" class="field-error">{{ fieldErrors.password }}</span>
-        </div>
-
-        <div class="field">
-          <label for="confirm_password">Confirm password</label>
-          <input
-            id="confirm_password"
-            v-model="form.confirm_password"
-            @blur="onBlur('confirm_password')"
-            @input="onInput('confirm_password')"
-            class="input"
-            :class="{ 'has-error': fieldErrors.confirm_password }"
-            type="password"
-            autocomplete="new-password"
-            required
-          />
-          <span v-if="fieldErrors.confirm_password" class="field-error">
-            {{ fieldErrors.confirm_password }}
-          </span>
-        </div>
-
-        <button class="btn btn-primary btn-block" type="submit" :disabled="busy">
-          {{ busy ? 'Creating account…' : 'Create account' }}
-        </button>
-      </form>
-
-      <p class="switch small">
-        Already registered? <NuxtLink to="/login">Log in</NuxtLink>
+  <form class="auth-form" novalidate @submit.prevent="submit">
+    <div>
+      <h2>Create your account</h2>
+      <p v-if="draft" class="muted intro">
+        Your {{ draft.model }} {{ draft.year }}
+        <template v-if="draft.problem">and problem description are</template>
+        <template v-else>is</template>
+        saved. Finish signing up to see the estimate.
       </p>
+      <p v-else class="muted intro">It takes a minute. We only use your email to log you in.</p>
     </div>
-  </div>
+
+    <p v-if="formError && !emailTaken" class="alert alert-error" role="alert">
+      <AppIcon name="info" :size="18" :stroke="2" />{{ formError }}
+    </p>
+
+    <label class="field">
+      Full name
+      <input
+        v-model="form.name"
+        class="input"
+        :class="{ 'has-error': fieldErrors.name }"
+        autocomplete="name"
+        maxlength="60"
+        @blur="onBlur('name')"
+        @input="onInput('name')"
+      />
+      <span v-if="fieldErrors.name" class="field-error">
+        <AppIcon name="info" :size="16" :stroke="2" />{{ fieldErrors.name }}
+      </span>
+    </label>
+
+    <label class="field">
+      Email
+      <input
+        v-model="form.email"
+        class="input"
+        :class="{ 'has-error': fieldErrors.email }"
+        type="email"
+        autocomplete="email"
+        @blur="onBlur('email')"
+        @input="onInput('email')"
+      />
+      <span v-if="emailTaken" class="field-error">
+        <AppIcon name="info" :size="16" :stroke="2" />This email is already registered.
+        <NuxtLink to="/login" class="inline-link">Log in instead</NuxtLink>
+      </span>
+      <span v-else-if="fieldErrors.email" class="field-error">
+        <AppIcon name="info" :size="16" :stroke="2" />{{ fieldErrors.email }}
+      </span>
+    </label>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="with-toggle">
+        <input
+          id="password"
+          v-model="form.password"
+          class="input"
+          :class="{ 'has-error': fieldErrors.password }"
+          :type="showPassword ? 'text' : 'password'"
+          autocomplete="new-password"
+          placeholder="At least 8 characters"
+          maxlength="128"
+          @blur="onBlur('password')"
+          @input="onInput('password')"
+        />
+        <button
+          type="button"
+          class="toggle"
+          :aria-label="showPassword ? 'Hide password' : 'Show password'"
+          :aria-pressed="showPassword"
+          @click="showPassword = !showPassword"
+        >
+          <AppIcon name="eye" />
+        </button>
+      </div>
+      <PasswordChecklist :password="form.password" />
+      <span v-if="fieldErrors.password" class="field-error">
+        <AppIcon name="info" :size="16" :stroke="2" />{{ fieldErrors.password }}
+      </span>
+    </div>
+
+    <label class="field">
+      Confirm password
+      <input
+        v-model="form.confirm_password"
+        class="input"
+        :class="{ 'has-error': fieldErrors.confirm_password }"
+        :type="showPassword ? 'text' : 'password'"
+        autocomplete="new-password"
+        @blur="onBlur('confirm_password')"
+        @input="onInput('confirm_password')"
+      />
+      <span v-if="fieldErrors.confirm_password" class="field-error">
+        <AppIcon name="info" :size="16" :stroke="2" />{{ fieldErrors.confirm_password }}
+      </span>
+    </label>
+
+    <button class="btn btn-primary btn-lg" type="submit" :disabled="busy">
+      <span v-if="busy" class="spinner" />Create account
+    </button>
+
+    <p class="switch">
+      Already have an account? <NuxtLink to="/login">Log in</NuxtLink>
+    </p>
+  </form>
 </template>
 
 <style scoped>
-.auth-box {
-  margin: 16px auto 0;
+.auth-form {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.auth-form h2 {
+  margin: 0 0 6px;
+}
+
+.intro {
+  margin: 0;
+}
+
+.with-toggle {
+  position: relative;
+}
+
+.with-toggle .input {
+  padding-right: 48px;
+}
+
+.toggle {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--ink-soft);
+  display: grid;
+  place-items: center;
+}
+
+.inline-link {
+  color: var(--alert);
+  text-decoration: underline;
 }
 
 .switch {
-  margin-top: 16px;
+  margin: 0;
   text-align: center;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.switch a {
+  font-weight: 600;
+  text-decoration: underline;
 }
 </style>

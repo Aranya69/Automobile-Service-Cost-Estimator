@@ -22,9 +22,9 @@ export function emailError(raw: string) {
 
 export function passwordChecks(password: string) {
   return [
-    { label: `At least ${PASSWORD_MIN} characters`, ok: password.length >= PASSWORD_MIN },
-    { label: 'At least one letter', ok: /[A-Za-z]/.test(password) },
-    { label: 'At least one number', ok: /\d/.test(password) },
+    { label: `${PASSWORD_MIN}+ characters`, ok: password.length >= PASSWORD_MIN },
+    { label: 'A letter', ok: /[A-Za-z]/.test(password) },
+    { label: 'A number', ok: /\d/.test(password) },
   ]
 }
 
