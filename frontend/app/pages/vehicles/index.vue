@@ -71,6 +71,7 @@ async function remove(id: number) {
           <button class="btn btn-quiet" type="button" @click="confirmingId = null">Keep</button>
         </div>
         <div v-else class="car-actions">
+          <NuxtLink :to="`/estimate?vehicle=${car.id}`" class="btn btn-primary">Estimate a repair</NuxtLink>
           <NuxtLink :to="`/vehicles/${car.id}/edit`" class="btn">Edit</NuxtLink>
           <button class="btn btn-quiet btn-danger" type="button" @click="confirmingId = car.id">
             Delete
