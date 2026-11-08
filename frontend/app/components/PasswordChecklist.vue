@@ -1,38 +1,82 @@
 <script setup lang="ts">
+// Strength meter and live rules under the password field.
 const props = defineProps<{ password: string }>()
+
 const checks = computed(() => passwordChecks(props.password))
+
+const score = computed(() => {
+  if (!props.password) return 0
+  return checks.value.filter((c) => c.ok).length + (props.password.length >= 12 ? 1 : 0)
+})
+
+const LABELS = ['Too short', 'Weak', 'Fair', 'Good', 'Strong']
+const COLORS = ['var(--line)', 'var(--alert)', '#D9822B', 'var(--fair)', 'var(--fair)']
 </script>
 
 <template>
-  <ul class="checklist" aria-live="polite">
-    <li v-for="check in checks" :key="check.label" :class="{ ok: check.ok }">
-      <span class="mark" aria-hidden="true">{{ check.ok ? '✓' : '·' }}</span>
-      {{ check.label }}
-      <span class="sr-only">{{ check.ok ? '(done)' : '(not yet)' }}</span>
-    </li>
-  </ul>
+  <div class="strength" aria-live="polite">
+    <div class="bars">
+      <span v-for="i in 4" :key="i" :style="{ background: i <= score ? COLORS[score] : 'var(--line)' }" />
+    </div>
+    <span class="label">Strength: <b>{{ password ? LABELS[score] : '—' }}</b></span>
+    <ul class="rules">
+      <li v-for="check in checks" :key="check.label" :class="{ ok: check.ok }">
+        <AppIcon :name="check.ok ? 'check' : 'close'" :size="16" :stroke="2.25" />
+        {{ check.label }}
+        <span class="sr-only">{{ check.ok ? '(done)' : '(not yet)' }}</span>
+      </li>
+    </ul>
+  </div>
 </template>
 
 <style scoped>
-.checklist {
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
+.strength {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.bars {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px 16px;
-  font-size: 0.85rem;
+  gap: 4px;
+}
+
+.bars span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 400;
   color: var(--ink-soft);
 }
 
-.checklist li.ok {
-  color: var(--ok);
+.label b {
+  color: var(--ink);
 }
 
-.mark {
-  display: inline-block;
-  width: 1em;
-  font-weight: 700;
+.rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.rules li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rules li.ok {
+  color: var(--fair);
 }
 
 .sr-only {
