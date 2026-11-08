@@ -5,6 +5,7 @@ clarifying questions. Prices are never taken from the model.
 """
 
 import logging
+import re
 
 from flask import current_app
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -22,7 +23,10 @@ SYSTEM_PROMPT = """You help car owners in Bangladesh understand what repair thei
 The car is a {vehicle} with {odometer} km on the odometer.
 
 The owner may write in Bangla, in Banglish (Bangla written in English letters, for example
-"brake e awaj kore") or in English. Always answer in the same language and style they use.
+"brake e awaj kore") or in English. Always answer in the same language and script they use:
+Bangla script for Bangla, English letters for Banglish, English for English. All text you
+return (question, explanation, safety warnings) must follow this.
+{script_rule}
 
 Rules:
 1. Only choose job codes from the catalogue below. Never invent codes, parts or prices.
@@ -58,14 +62,33 @@ def get_chat_model():
     return ChatGoogleGenerativeAI(
         model=current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash"),
         google_api_key=api_key,
+        # The v1 API rejects system instructions, which the agent relies on.
+        api_version="v1beta",
         temperature=0.2,
         timeout=30,
         max_retries=1,
     )
 
 
+BANGLA_SCRIPT = re.compile(r"[ঀ-৿]")
+
+SCRIPT_RULES = {
+    "bangla": "This owner writes in Bangla script, so reply in Bangla script.",
+    "latin": (
+        "This owner writes in English letters only. Reply in English letters only, never in "
+        "Bangla script: Banglish if they write Banglish, English if they write English."
+    ),
+}
+
+
+def owner_script(problem_text, answers):
+    text = problem_text + " ".join(turn["answer"] for turn in answers)
+    return "bangla" if BANGLA_SCRIPT.search(text) else "latin"
+
+
 def build_messages(problem_text, vehicle, answers):
     system = SYSTEM_PROMPT.format(
+        script_rule=SCRIPT_RULES[owner_script(problem_text, answers)],
         vehicle=f"{vehicle.make} {vehicle.model} {vehicle.year} ({vehicle.engine_cc} cc)",
         odometer=f"{vehicle.odometer_km:,}",
         asked=len(answers),
