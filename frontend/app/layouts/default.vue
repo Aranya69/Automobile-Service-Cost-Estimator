@@ -24,6 +24,7 @@ async function onLogout() {
         <nav v-if="user" class="nav">
           <NuxtLink to="/estimate">New estimate</NuxtLink>
           <NuxtLink to="/vehicles">My cars</NuxtLink>
+          <NuxtLink to="/history">History</NuxtLink>
           <NuxtLink to="/account" class="who" :title="user.email">{{ firstName }}</NuxtLink>
           <button class="btn btn-quiet" type="button" :disabled="leaving" @click="onLogout">
             Log out
