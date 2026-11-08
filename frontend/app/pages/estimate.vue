@@ -260,6 +260,7 @@ function startOver() {
       <div v-else-if="step === 'result' && result">
         <EstimateReceipt :estimate="result" />
         <div class="after">
+          <NuxtLink :to="`/history/${result.id}`" class="btn">Saved to history</NuxtLink>
           <button class="btn btn-primary" type="button" @click="startOver">Estimate another problem</button>
         </div>
       </div>
